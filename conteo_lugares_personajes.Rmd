@@ -1,0 +1,211 @@
+---
+title: "Lord Of The Rings conteo"
+output: html_notebook
+---
+
+# Cargamos paquetes
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+library(tidytext)
+library(ggrepel)
+```
+
+# Cargamos el texto de los libros
+
+```{r}
+#Fuente:
+#https://www.kaggle.com/mokosan/lord-of-the-rings-character-data/data?select=LordOfTheRingsBook.json
+books_data <- read_json("data_books/LordOfTheRingsBook.json")
+#books_data[[1]]
+```
+
+# Creamos la función json_to_dataframe
+
+Con está función convertiremos una serie de listas a dataframe
+
+```{r}
+
+json_to_dataframe <- function(lista) {
+  libro <- lista$BookName$Case
+  capitulo <- lista$ChapterName
+  contenido <- lista$ChapterData
+
+  resultado <- tibble(libro=libro, capitulo=capitulo, contenido=contenido)
+
+  return(resultado)
+}
+
+
+```
+
+# Creamos nuestro dataframe
+
+```{r}
+books_data_df <- books_data %>% map_df(json_to_dataframe)
+books_data_df %>% head()
+```
+
+# Separamos el contenido de cada libro en palabras
+También se convierte todo a minúsculas y se quitarán signos de puntuación
+
+```{r}
+
+book_words <- books_data_df %>%
+  unnest_tokens(word, contenido)
+
+book_words %>% head()
+```
+
+# Conteo de palabras y filtrado
+
+
+```{r}
+conteo_personajes <- book_words %>%
+  filter(word %in% c("frodo",
+                     "sam",
+                     "merry",
+                     "pippin",
+                     "aragorn",
+                     "boromir",
+                     "legolas",
+                     "gimli",
+                     "gandalf")) %>%
+  count(word, sort = TRUE)
+
+conteo_personajes
+
+```
+
+# Graficamos
+
+```{r}
+conteo_personajes %>%
+  mutate(word = forcats::as_factor(word) %>% str_to_title() ) %>%
+  ggplot() +
+  geom_col(aes(reorder(word, -n), n, fill = word), show.legend = F) +
+  scale_fill_viridis_d(option = "cividis") +
+  labs(x = "Personaje", y = "Conteo" , title = "Menciones de personajes que conforman la Comunidad del Anillo") +
+  theme_minimal()
+```
+```{r}
+ggsave("output/conteo_personajes.jpg")
+```
+
+
+Quizás Legolas mato más pero es menos mencionado que Gimli :D
+
+# Ahora hagamos el conteo por ubicación
+
+```{r}
+conteo_lugares <- book_words %>%
+  filter(word %in% c("hobbiton",
+                     "rivendell",
+                     "edoras",
+                     "tirith",
+                     "mordor",
+                     "helm's",
+                     "rohan")) %>%
+  count(word, sort = TRUE) %>%
+  mutate(nombre_completo = c("Mordor",
+                             "Rohan",
+                             "Rivendell",
+                             "Minas Tirith",
+                             "Hobbiton",
+                             "Edoras",
+                             "Helm's Deep"))
+
+
+```
+
+# Graficamos
+
+```{r}
+conteo_lugares %>%
+  mutate(nombre_completo = forcats::as_factor(nombre_completo)) %>%
+  ggplot() +
+  geom_col(aes(reorder(nombre_completo, -n), n, fill = nombre_completo),
+           show.legend = F) +
+  scale_fill_viridis_d(option = "inferno") +
+  labs(x = "Lugar", y = "Conteo" , title = "Menciones de lugares") +
+  theme_minimal()
+```
+```{r}
+ggsave("output/conteo_lugares.jpg")
+```
+
+Sin duda Mordor es el más mencionado en los tres libros
+
+# MAPA DE LA TIERRA MEDIA
+
+Este tuit "https://twitter.com/andrewheiss/status/1291380121069330432"
+es la inspiración de esto que te encuentras leyendo fueron mínimas las modificaciones
+ya que considero que es un excelente mapa
+
+# Cargamos los shapes
+
+```{r}
+library(tidyverse)
+library(sf)
+
+# https://github.com/jvangeld/ME-GIS
+coastline <- read_sf("ME-GIS-master/Coastline2.shp")
+contours <- read_sf("ME-GIS-master/Contours_18.shp")
+rivers <- read_sf("ME-GIS-master/Rivers.shp")
+lakes <- read_sf("ME-GIS-master/Lakes.shp")
+forests <- read_sf("ME-GIS-master/Forests.shp")
+mountains <- read_sf("ME-GIS-master/Mountains_Anno.shp")
+placenames <- read_sf("ME-GIS-master/Combined_Placenames.shp")
+
+places <- placenames %>%
+  filter(NAME %in% c("Hobbiton",
+                     "Rivendell",
+                     "Edoras",
+                     "Minas Tirith",
+                     "Mordor",
+                     "Helm's Deep",
+                     "Rohan"))
+```
+
+# Agregamos el conteo de apariciones de las ubicaciones
+
+```{r}
+places_join <- places %>%
+  left_join(conteo_lugares, by = c("NAME" = "nombre_completo"))
+```
+
+
+```{r}
+# Para dar un toque de la tierra media agregamos la siguiente fuente
+# https://www.fontspace.com/middleearth-font-f28347
+library(showtext)
+font_add("middleearth", "font/Middleearth-ao6m.ttf")
+showtext_auto()
+```
+
+# Graficamos
+
+```{r}
+# Es probable que las etiquetas se vean enormes, esto cambia una vez guardada la imagen
+ggplot() +
+  geom_sf(data = contours, size = 0.15, color = "grey90") +
+  geom_sf(data = coastline, size = 0.25, color = "grey50") +
+  geom_sf(data = rivers, size = 0.2, color = "#0776e0", alpha = 0.5) +
+  geom_sf(data = lakes, size = 0.2, color = "#0776e0", fill = "#0776e0") +
+  geom_sf(data = forests, size = 0, fill = "#035711", alpha = 0.5) +
+  geom_sf(data = mountains, size = 0.25) +
+  geom_sf(data = places_join, aes(size = n), alpha = .5, color = "red", show.legend = F) +
+  geom_label_repel(data = places_join, aes(label = NAME,  geometry = geometry),
+                   stat = "sf_coordinates",min.segment.length = 0,
+                   segment.alpha = 0.5,
+                   box.padding = 0.5,
+                   family = "middleearth", size = 10) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "#fffce3"))
+```
+
+# Guardamos
+```{r}
+ggsave("output/map.jpg")
+```
