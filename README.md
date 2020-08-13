@@ -5,7 +5,7 @@ Tomando como inspiración [este tuit](https://twitter.com/andrewheiss/status/129
 menciones de personajes que conforman la comunidad del anillo así como los
 lugares más representativos.
 
-+ [Codigo](https://www.kaggle.com/mokosan/lord-of-the-rings-character-data/data?select=LordOfTheRingsBook.json) completo.
++ [Codigo](https://github.com/alonmar/alonmar-Conteo_mapa_lotr/blob/master/conteo_lugares_personajes.Rmd) completo.
 
 + Los datos los puedes descargar aquí
 [Datos](https://www.kaggle.com/mokosan/lord-of-the-rings-character-data/data?select=LordOfTheRingsBook.json).
