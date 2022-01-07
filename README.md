@@ -12,3 +12,11 @@ lugares más representativos.
 
 + Y los shapes los puedes descargar aquí
 [Shapes](https://github.com/jvangeld/ME-GIS).
+
+## Resultados
+
+![Mapa](https://raw.githubusercontent.com/alonmar/alonmar-Conteo_mapa_lotr/master/output/map.jpg)
+
+![conteo-lugares](https://raw.githubusercontent.com/alonmar/alonmar-Conteo_mapa_lotr/master/output/conteo_lugares.jpg)
+
+![conteo-personajes](https://raw.githubusercontent.com/alonmar/alonmar-Conteo_mapa_lotr/master/output/conteo_personajes.jpg)
